@@ -27,11 +27,118 @@
   - For any other route not defined in the server return 404
 
   Testing the server - run `npm run test-authenticationServer` command in terminal
+
+  user object 
+  {
+    email: 'vasujhawar@gmails.com
+    password : "vasujhwradsjks"
+    firstName : 'vasu,
+    lastName : "Jhawar"
+    }
  */
+
+  
 
 const express = require("express")
 const PORT = 3000;
 const app = express();
+const bodyParser = require('body-parser');
+const crypto = require('crypto');
+require('dotenv').config();
+
+function generateUniqueId(string) {
+    const salt = process.env.SALT_SECRET;
+    const hash = crypto.createHash('sha256');
+    const data = string + salt;
+    const hashedData = hash.update(data).digest('hex');
+
+  return hashedData;
+}
+
 // write your logic here, DONT WRITE app.listen(3000) when you're running tests, the tests will automatically start the server
+
+app.use(bodyParser.json());
+
+let users = [];
+
+app.post('/signup', (req,res)=>{
+  let user = req.body;
+  let userExists = false;
+
+  for(let i=0; i<users.length;i++){
+    if(users[i].email==user.email){
+      userExists = true;
+      break;
+    }
+  }
+
+  if(userExists){
+    res.status(400).send("BAD Request, Email already exists!")
+  }
+  else{
+    const email = user.email;
+    const uniqueId = generateUniqueId(email);
+    user.specialId = uniqueId
+    //console.log(uniqueId);
+    users.push(user);
+    res.status(201).send("Signup successful");
+  }
+});
+
+
+app.post('/login', (req, res) => {
+  let user = req.body;
+  let userExists = false;
+  let i=0;
+  for(i=0; i<users.length;i++){
+    if(users[i].email==user.email && users[i].password==user.password){
+      userExists = true;
+      break;
+    }
+  }
+
+  if(userExists){
+    res.status(200).json({
+      firstName : users[i].firstName,
+      lastName : users[i].lastName,
+      email : users[i].email
+    })
+  }
+  else{
+    res.status(400).send("INvalid CRedentials")
+  }
+})
+
+app.get("/data", (req, res) => {
+  var email = req.headers.email;
+  var password = req.headers.password;
+  let userFound = false;
+  for (var i = 0; i<users.length; i++) {
+    if (users[i].email === email && users[i].password === password) {
+        userFound = true;
+        break;
+    }
+  }
+
+  if (userFound) {
+    let usersToReturn = [];
+    for (let i = 0; i<users.length; i++) {
+        usersToReturn.push({
+            firstName: users[i].firstName,
+            lastName: users[i].lastName,
+            email: users[i].email
+        });
+    }
+    res.json({
+        users
+    });
+  } else {
+    res.sendStatus(401).send("Invalid Request!");
+  }
+});
+
+// app.listen(PORT, ()=> {
+//   console.log("Listening music on http://localhost:3000");
+// })
 
 module.exports = app;
